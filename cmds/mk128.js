@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 var fs = require('fs')
 var path = require('path')
 var deleteDir = require('../utils/deleteDir')
