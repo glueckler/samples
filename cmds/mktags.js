@@ -1,11 +1,13 @@
 const fsY = require('../fsYoots')
 const fs = require('fs')
+const path = require('path')
 const rndStr = require('../utils/randomString')
 
 module.exports = args => {
   // variables
   let description = args.d
   const rootDir = fsY.currentDir()
+  const baseName = path.basename(rootDir)
   const stagsPath = `${rootDir}/stags`
 
   // may as well just delete the stags dir and start fresh
@@ -21,81 +23,51 @@ module.exports = args => {
     fs.closeSync(fd)
   }
 
-  const mainOperation = curDir => {
-    const contents = fs.readdirSync(curDir)
+  // recursively called on directories
+  const mainOperation = ({ curDir, dirName, rootDir }, tags = []) => {
+    const contents = fs.readdirSync(curDir).filter(file => file[0] !== '.')
+    const code = dirName.substring(0, 2)
+    const tagName = dirName.substring(2)
+    const currentTags = [...tags]
+    const samples = contents.filter(
+      fileOrDir => !fsY.isDir(`${curDir}/${fileOrDir}`)
+    )
+    const dirs = contents.filter(fileOrDir =>
+      fsY.isDir(`${curDir}/${fileOrDir}`)
+    )
 
-    // loop through the current directory and process each directory one at a time
-    contents.forEach(fileName => {
-      const filePath = `${curDir}/${fileName}`
-
-      // check if is a directory..
-      if (!fsY.isDir(filePath)) {
-        console.log(`"${fileName}" is not a directory.. skip..\n`)
-        return
+    if (!rootDir) {
+      if (code === '&&' || code === '&$') {
+        currentTags.push(tagName)
+        writeTagFile(tagName)
+      } else {
+        currentTags.push(dirName)
+        writeTagFile(dirName)
       }
+    }
 
-      // get code and tagname
-      const code = fileName.substring(0, 2)
-      const tagName = fileName.substring(2)
+    //
+    //
+    // create function for &$ directory..
+    const processSamples = processType => {
+      // loop through all samples
+      samples.forEach(sample => {
+        // do nothing if file already contains tag
+        if (sample.includes(`s${tagName}`)) return
 
-      if (fileName === 'stags') {
-        console.log(`"stags" ... skip`)
-        return
-      }
+        // delete file if it's .asd
+        if (fsY.hasExt('.asd', sample)) {
+          console.log(`Deleting: ${sample}`)
+          fs.unlinkSync(`${curDir}/${sample}`)
+          // and return
+          return
+        }
 
-      //
-      //
-      // create function for &$ directory..
-      const processNamedFileDir = () => {
-        const samples = fsY.currentDirFiles(filePath)
-        // loop through all samples
-        samples.forEach(sample => {
-          // do nothing if file already contains tag
-          if (sample.includes(`s${tagName}`)) return
-
-          // delete file if it's .asd
-          if (fsY.hasExt('.asd', sample)) {
-            console.log(`Deleting: ${sample}`)
-            fs.unlinkSync(`${filePath}/${sample}`)
-            // and return
-            return
-          }
-          // split off the extension
-          const [name, ext] = fsY.splitExt(sample)
-
-          let nxtName = `${name} - s${tagName}`
-          if (description) {
-            nxtName = `${nxtName} - ${description}`
-          }
-
-          // add the ext back on
-          nxtName += ext
-          console.log(`Renaming: ${sample} >> ${nxtName}`)
-          fs.renameSync(`${filePath}/${sample}`, `${filePath}/${nxtName}`)
-        })
-      }
-
-      //
-      //
-      // create function for && directory..
-      const processListFileDir = () => {
-        const samples = fsY.currentDirFiles(filePath)
-        // loop through all samples
-        samples.forEach(sample => {
-          // do nothing if file already contains tag
-          if (sample.startsWith(`s${tagName}`)) return
-
-          // delete file if it's .asd
-          if (fsY.hasExt('.asd', sample)) {
-            console.log(`Deleting: ${sample}`)
-            fs.unlinkSync(`${filePath}/${sample}`)
-            // and return
-            return
-          }
-          // split off the extension
-          const [_name, ext] = fsY.splitExt(sample)
-
-          let nxtName = `s${tagName}`
+        let nxtName
+        // split off the extension
+        const [name, ext] = fsY.splitExt(sample)
+        if (processType === 'random') {
+          nxtName = `s${currentTags.join(' - s')}`
           if (description) {
             nxtName = `${nxtName} - ${description}`
           }
@@ -108,28 +80,40 @@ module.exports = args => {
             }
             return `${nxtName} - ${rnd}`
           })()
+        } else if (processType === 'named') {
+          nxtName = `${name} - s${currentTags.join(' - s')}`
 
-          // add the ext back on
-          nxtName += ext
-          console.log(`Renaming: ${sample} >> ${nxtName}`)
-          fs.renameSync(`${filePath}/${sample}`, `${filePath}/${nxtName}`)
-        })
-      }
+          if (description) {
+            nxtName = `${nxtName} - ${description}`
+          }
+        }
 
-      console.log(`Processing ${fileName}\n`)
-      if (code === '&$') {
-        processNamedFileDir()
-        writeTagFile(tagName)
-      } else if (code === '&&') {
-        processListFileDir()
-        writeTagFile(tagName)
-      } else {
-        // if the directory doesn't match either above dive into it!
-        console.log(`Diving one layer deeper into >> ${filePath}\n`)
-        mainOperation(filePath)
+        // add the ext back on
+        nxtName += ext
+        console.log(`Renaming: ${sample} >> ${nxtName}`)
+        fs.renameSync(`${curDir}/${sample}`, `${curDir}/${nxtName}`)
+      })
+    }
+
+    console.log(`Processing ${curDir}\n`)
+    if (code === '&$') {
+      processSamples('named')
+    } else if (code === '&&') {
+      processSamples('random')
+    }
+
+    // loop through the current directory and process each directory one at a time
+    dirs.forEach(dirName => {
+      const curPath = `${curDir}/${dirName}`
+
+      if (dirName === 'stags') {
+        console.log(`"stags" ... skip`)
+        return
       }
+      console.log(`Diving one layer deeper into >> ${curPath}\n`)
+      mainOperation({ curDir: curPath, dirName: dirName }, currentTags)
     })
   }
 
-  mainOperation(rootDir)
+  mainOperation({ curDir: rootDir, dirName: baseName, rootDir: true })
 }
