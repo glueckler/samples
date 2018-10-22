@@ -23,7 +23,7 @@ module.exports = () => {
       // if description is null ask if user would like to add one
       if (!args.d) {
         prompt(
-          'Would you like to add a description tag for this batch?\n',
+          'Would you like to add a description tag for this batch?\nNevermind !! Just Hit Enter, this doesnt work ATM..',
           function(input) {
             args.d = input
             require('./cmds/mktags')(args)

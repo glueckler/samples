@@ -36,14 +36,9 @@ module.exports = args => {
       fsY.isDir(`${curDir}/${fileOrDir}`)
     )
 
-    if (!rootDir) {
-      if (code === '&&' || code === '&$') {
-        currentTags.push(tagName)
-        writeTagFile(tagName)
-      } else {
-        currentTags.push(dirName)
-        writeTagFile(dirName)
-      }
+    if ((code === '&&' || code === '&$') && !rootDir) {
+      currentTags.push(tagName)
+      writeTagFile(tagName)
     }
 
     //
@@ -52,8 +47,9 @@ module.exports = args => {
     const processSamples = processType => {
       // loop through all samples
       samples.forEach(sample => {
+        let fullTagName = `s${currentTags.join(' - s')}`
         // do nothing if file already contains tag
-        if (sample.includes(`s${tagName}`)) return
+        if (sample.includes(fullTagName)) return
 
         // delete file if it's .asd
         if (fsY.hasExt('.asd', sample)) {
@@ -67,10 +63,7 @@ module.exports = args => {
         // split off the extension
         const [name, ext] = fsY.splitExt(sample)
         if (processType === 'random') {
-          nxtName = `s${currentTags.join(' - s')}`
-          if (description) {
-            nxtName = `${nxtName} - ${description}`
-          }
+          nxtName = fullTagName
           // add random tag
           nxtName = (() => {
             let rnd = rndStr()
@@ -81,11 +74,8 @@ module.exports = args => {
             return `${nxtName} - ${rnd}`
           })()
         } else if (processType === 'named') {
-          nxtName = `${name} - s${currentTags.join(' - s')}`
-
-          if (description) {
-            nxtName = `${nxtName} - ${description}`
-          }
+          nxtName = name.replace(/\s_-_\s.*/, '')
+          nxtName = `${nxtName} _-_ ${fullTagName}`
         }
 
         // add the ext back on
