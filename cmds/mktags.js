@@ -53,10 +53,12 @@ module.exports = args => {
         // attempt to find the random string
         const rndRgEx = /^.{3}->\s/
         let rndTag = sample.search(rndRgEx)
+
+        const shouldNotChangeRndTag = rndTag !== -1 && !shiftTags && !unshiftTags
         // do nothing if file already contains tags
         if (
           sample.includes(fullTagName) &&
-          (rndTag !== -1 && !shiftTags && !unshiftTags)
+          (code === '&&' && shouldNotChangeRndTag)
         ) {
           return
         }
@@ -88,8 +90,15 @@ module.exports = args => {
         } else {
           newRndTag = rndStr.create()
         }
+
+        // delete the tags
         nxtName = name.replace(/\s_-_\s.*/, '').replace(rndRgEx, '')
-        nxtName = `${newRndTag}-> ${nxtName} _-_ ${fullTagName}`
+
+        nxtName = `${nxtName} _-_ ${fullTagName}`
+
+        if (code === '&&') {
+          nxtName = `${newRndTag}-> ${nxtName}`
+        }
 
         // add the ext back on
         nxtName += ext
@@ -99,8 +108,8 @@ module.exports = args => {
     }
 
     console.log(`Processing ${curDir}\n`)
-    if (code === '&&' && !rootDir) {
-      processSamples('named')
+    if ((code === '&&' || code === '&$') && !rootDir) {
+      processSamples()
     }
 
     // loop through the current directory and process each directory one at a time
