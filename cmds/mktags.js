@@ -72,37 +72,24 @@ module.exports = args => {
         let nxtName
         // split off the extension
         const [name, ext] = fsY.splitExt(sample)
-        if (processType === 'random') {
-          nxtName = fullTagName
-          // add random tag
-          nxtName = (() => {
-            let rnd = rndStr.create()
-            // the odd chance the key already exists
-            while (samples.find(sample => sample.includes(rnd))) {
-              rnd = rndStr.create()
-            }
-            return `${nxtName} - ${rnd}`
-          })()
-        } else if (processType === 'named') {
-          let newRndTag
-          // we already have a random tag and we are shift it
-          if (rndTag !== -1 && (shiftTags || unshiftTags)) {
-            const oldRndTag = name
-              .split('')
-              .slice(0, 3)
-              .join('')
-            if (shiftTags) {
-              newRndTag = rndStr.shiftForward(oldRndTag)
-            }
-            if (unshiftTags) {
-              newRndTag = rndStr.shiftBack(oldRndTag)
-            }
-          } else {
-            newRndTag = rndStr.create()
+        let newRndTag
+        // we already have a random tag and we are shift it
+        if (rndTag !== -1 && (shiftTags || unshiftTags)) {
+          const oldRndTag = name
+            .split('')
+            .slice(0, 3)
+            .join('')
+          if (shiftTags) {
+            newRndTag = rndStr.shiftForward(oldRndTag)
           }
-          nxtName = name.replace(/\s_-_\s.*/, '').replace(rndRgEx, '')
-          nxtName = `${newRndTag}-> ${nxtName} _-_ ${fullTagName}`
+          if (unshiftTags) {
+            newRndTag = rndStr.shiftBack(oldRndTag)
+          }
+        } else {
+          newRndTag = rndStr.create()
         }
+        nxtName = name.replace(/\s_-_\s.*/, '').replace(rndRgEx, '')
+        nxtName = `${newRndTag}-> ${nxtName} _-_ ${fullTagName}`
 
         // add the ext back on
         nxtName += ext
@@ -112,9 +99,7 @@ module.exports = args => {
     }
 
     console.log(`Processing ${curDir}\n`)
-    if (code === '&$' && !rootDir) {
-      processSamples('random')
-    } else if (code === '&&' && !rootDir) {
+    if (code === '&&' && !rootDir) {
       processSamples('named')
     }
 
