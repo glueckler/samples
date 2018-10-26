@@ -6,6 +6,8 @@ const rndStr = require('../utils/randomString')
 module.exports = args => {
   // variables
   let description = args.d
+  const shiftTags = args.s
+  const unshiftTags = args.u
   const rootDir = fsY.currentDir()
   const baseName = path.basename(rootDir)
   const stagsPath = `${rootDir}/stags`
@@ -48,8 +50,16 @@ module.exports = args => {
       // loop through all samples
       samples.forEach(sample => {
         let fullTagName = `s${currentTags.join(' - s')}`
-        // do nothing if file already contains tag
-        if (sample.includes(fullTagName)) return
+        // attempt to find the random string
+        const rndRgEx = /^.{3}->\s/
+        let rndTag = sample.search(rndRgEx)
+        // do nothing if file already contains tags
+        if (
+          sample.includes(fullTagName) &&
+          (rndTag !== -1 && !shiftTags && !unshiftTags)
+        ) {
+          return
+        }
 
         // delete file if it's .asd
         if (fsY.hasExt('.asd', sample)) {
@@ -66,16 +76,32 @@ module.exports = args => {
           nxtName = fullTagName
           // add random tag
           nxtName = (() => {
-            let rnd = rndStr()
+            let rnd = rndStr.create()
             // the odd chance the key already exists
             while (samples.find(sample => sample.includes(rnd))) {
-              rnd = rndStr()
+              rnd = rndStr.create()
             }
             return `${nxtName} - ${rnd}`
           })()
         } else if (processType === 'named') {
-          nxtName = name.replace(/\s_-_\s.*/, '')
-          nxtName = `${nxtName} _-_ ${fullTagName}`
+          let newRndTag
+          // we already have a random tag and we are shift it
+          if (rndTag !== -1 && (shiftTags || unshiftTags)) {
+            const oldRndTag = name
+              .split('')
+              .slice(0, 3)
+              .join('')
+            if (shiftTags) {
+              newRndTag = rndStr.shiftForward(oldRndTag)
+            }
+            if (unshiftTags) {
+              newRndTag = rndStr.shiftBack(oldRndTag)
+            }
+          } else {
+            newRndTag = rndStr.create()
+          }
+          nxtName = name.replace(/\s_-_\s.*/, '').replace(rndRgEx, '')
+          nxtName = `${newRndTag}-> ${nxtName} _-_ ${fullTagName}`
         }
 
         // add the ext back on
@@ -86,10 +112,10 @@ module.exports = args => {
     }
 
     console.log(`Processing ${curDir}\n`)
-    if (code === '&$') {
-      processSamples('named')
-    } else if (code === '&&') {
+    if (code === '&$' && !rootDir) {
       processSamples('random')
+    } else if (code === '&&' && !rootDir) {
+      processSamples('named')
     }
 
     // loop through the current directory and process each directory one at a time

@@ -10,6 +10,12 @@ module.exports = args => {
       &&<name> \tex: "&&Riser" use for a (random) directory
       &$<name> \tex: "&$Riser" use to maintain the original filename and add the tag - sRiser
 
+    -s shift random tags:
+      pass -s to shift the random (one character to the right)
+
+    -u unshift random tags:
+      undo the shift tag
+      
     -d (currently out of service!! sorry!) tag takes one string and adds that to the end of every file processed 
       ex: samples --tags -d patches   
 `

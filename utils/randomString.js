@@ -70,4 +70,20 @@ var chars = [
 
 const random = () => chars[Math.trunc(Math.random() * 66)]
 
-module.exports = () => ['r', 'a', 'n'].map(random).join('')
+exports.create = () => ['r', 'a', 'n'].map(random).join('')
+
+exports.shiftForward = str => {
+  const strArr = str.split('')
+  return strArr
+    .slice(strArr.length - 1)
+    .concat(strArr.slice(0, strArr.length - 1))
+    .join('')
+}
+
+exports.shiftBack = str => {
+  const strArr = str.split('')
+  return strArr
+    .slice(1)
+    .concat([strArr[0]])
+    .join('')
+}
