@@ -1,3 +1,4 @@
+require('../utils/randomizeArray') // mad side effects
 const fsY = require('../fsYoots')
 const fs = require('fs')
 const path = require('path')
@@ -6,8 +7,6 @@ const rndStr = require('../utils/randomString')
 module.exports = args => {
   // variables
   let description = args.d
-  const shiftTags = args.s
-  const unshiftTags = args.u
   const rootDir = fsY.currentDir()
   const baseName = path.basename(rootDir)
   const stagsPath = `${rootDir}/stags`
@@ -45,23 +44,12 @@ module.exports = args => {
 
     //
     //
-    // create function for &$ directory..
     const processSamples = processType => {
       // loop through all samples
-      samples.forEach(sample => {
+      // use a count because index will not count consistently
+      let count = 0
+      samples.randomize().forEach((sample) => {
         let fullTagName = `s${currentTags.join(' - s')}`
-        // attempt to find the random string
-        const rndRgEx = /^.{3}->\s/
-        let rndTag = sample.search(rndRgEx)
-
-        const shouldNotChangeRndTag = rndTag !== -1 && !shiftTags && !unshiftTags
-        // do nothing if file already contains tags
-        if (
-          sample.includes(fullTagName) &&
-          (code === '&&' && shouldNotChangeRndTag)
-        ) {
-          return
-        }
 
         // delete file if it's .asd
         if (fsY.hasExt('.asd', sample)) {
@@ -74,30 +62,16 @@ module.exports = args => {
         let nxtName
         // split off the extension
         const [name, ext] = fsY.splitExt(sample)
-        let newRndTag
-        // we already have a random tag and we are shift it
-        if (rndTag !== -1 && (shiftTags || unshiftTags)) {
-          const oldRndTag = name
-            .split('')
-            .slice(0, 3)
-            .join('')
-          if (shiftTags) {
-            newRndTag = rndStr.shiftForward(oldRndTag)
-          }
-          if (unshiftTags) {
-            newRndTag = rndStr.shiftBack(oldRndTag)
-          }
-        } else {
-          newRndTag = rndStr.create()
-        }
 
         // delete the tags
-        nxtName = name.replace(/\s_-_\s.*/, '').replace(rndRgEx, '')
+        nxtName = name.replace(/\s_-_\s.*/, '').replace(/^.*->\s/, '')
 
         nxtName = `${nxtName} _-_ ${fullTagName}`
 
+        // so if we use && then the index will be in name, making it random
         if (code === '&&') {
-          nxtName = `${newRndTag}-> ${nxtName}`
+          nxtName = `${count}-> ${nxtName}`
+          count++
         }
 
         // add the ext back on
