@@ -44,12 +44,12 @@ module.exports = args => {
 
     //
     //
-    const processSamples = processType => {
+    const processSamples = () => {
       // loop through all samples
       // use a count because index will not count consistently
       let count = 0
       samples.randomize().forEach((sample) => {
-        let fullTagName = `s${currentTags.join(' - s')}`
+        let fullTagName = currentTags.length ? ` _-_ s${currentTags.join(' - s')}` : ''
 
         // delete file if it's .asd
         if (fsY.hasExt('.asd', sample)) {
@@ -66,7 +66,7 @@ module.exports = args => {
         // delete the tags
         nxtName = name.replace(/\s_-_\s.*/, '').replace(/^.*->\s/, '')
 
-        nxtName = `${nxtName} _-_ ${fullTagName}`
+        nxtName = `${nxtName}${fullTagName}`
 
         // so if we use && then the index will be in name, making it random
         if (code === '&&') {
@@ -82,7 +82,7 @@ module.exports = args => {
     }
 
     console.log(`Processing ${curDir}\n`)
-    if ((code === '&&' || code === '&$') && !rootDir) {
+    if (!rootDir) {
       processSamples()
     }
 
